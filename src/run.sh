@@ -3,7 +3,8 @@
 cat \
   promiseCache.js \
   *.js \
-  | sudo node
+  > out.js
+sudo node out.js
 
 
 
