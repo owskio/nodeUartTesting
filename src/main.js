@@ -34,27 +34,45 @@
 
 
 ;(function(){
-
+  //Promise extensions
+  root.p.setTimeout = function(ms){
+    var result = new p();
+    root.setTimeout(function(){
+      result.resolve();
+    },500);
+    return result;
+  }
+})();
+;(function(){
+  //blip extensions
   pc('blips') .then(function(b){
-
-    b.fileData = function(fsIn){
+//    b.fileData = function(fsIn){
+//      var fd = new b();
+//      fsIn.on('data',function(err,data){
+//        fd.set(err || data);
+//      });
+//      return fd;
+//    };
+    b.setTimeout = function(ms){
+      root.setTimeout(function(){
+        output.set('hi ');
+      },500);
+    }
+    b.nodeEvent = function(obj,eventName){
       var fd = new b();
-      fsIn.on('data',function(err,data){
+      obj.on(eventName,function(err,data){
         fd.set(err || data);
       });
       return fd;
     };
-    b.fileWrite = function(fsOut){
-      var fd = new b();
-      fd.calls(function(d){
-        fsOut.write(d);
+    b.prototype.writesTo = function(nodeStream){
+      this.calls(function(d){
+        nodeStream.write(d);
       });
-      return fd;
+      return this;
     };
-
     pc('blip-fs',p(b));
-
-  }); 
+  });
 })();
 
 ;(function(){
@@ -71,49 +89,41 @@
     var ttyUsb = '/dev/ttyUSB0';
     var fsIn = fs.createReadStream(ttyUsb);
     //No combination of these seemed to help to eliminate the timeout below
-    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_RDRW});
-    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY});
-    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY|c.O_RDWR});
     //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY|c.O_RDWR|c.O_NONBLOCK});
-    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY|c.O_RDONLY});
-    fsIn.on('open',function(){
-      l('input ready: ',arguments);
-      var tty = b.fileData(fsIn);
-      var str = tty.map(function(dat){
-        var str = dat.toString();
-        return str;
-      });
-      str.calls(function(dat){
-        l('str: ',dat);
-        var pass = dat.includes('Hello World!');
-        l('pass: ',pass);
-      });
-
-    //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_NOCTTY});
-    //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY});
-    var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY|c.O_NOCTTY});
-    fsOut.on('drain',function(){ l('drain: ',arguments); });
-    fsOut.on('error',function(){ l('error: ',arguments); });
-    fsOut.on('*',function(){ l('close: ',arguments); });
-    fsOut.on('finish',function(){ l('finish: ',arguments); });
-    fsOut.on('readable',function(){ l('readable: ',arguments); });
-    fsOut.on('data',function(){ l('data: ',arguments); });
-    fsOut.on('pipe',function(){ fsOut.write('hi \n'); });
-
-    fsOut.on('open',function(){
-      l('output ready: ',arguments);
-      var out = b.fileWrite(fsOut);
-      root.setTimeout(function(){
-        out.set('hi ');
-      },500);
-      root.setTimeout(function(){
-        out.set('hi ');
-      },1000);
-      fsOut.write('hi \n');
+    //fsIn.on('open',function(){
+    var openInput = b.nodeEvent(fsIn,'open');
+    var input = new b();
+    openInput.calls(function(){
+      l('openInput: ',arguments);
+      var ttyIn = b.nodeEvent(fsIn,'data');//fileData(fsIn);
+      ttyIn.sets(input);
     });
+    var str = input.map(function(dat){
+      var str = dat.toString();
+      return str;
+    });
+    str.calls(function(dat){
+      l('str: ',dat);
+      var pass = dat.includes('Hello World!');
+      l('pass: ',pass);
+    });
+
+    //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY|c.O_NOCTTY});
+    var fsOut = fs.createWriteStream(ttyUsb);
+    var output = new b();
+    output.writesTo(fsOut);
+    var openOutput = b.nodeEvent(fsOut,'open').toPromise();
+    var wtfTimeout = p.setTimeout(500);
+    p.all([openOutput,wtfTimeout])
+      .then(function(){
+        l('openOutput: ',arguments);
+        root.setTimeout(function(){
+          output.set('hi ');
+        },500);
+        output.set('hi ');
+        output.set('hi ');
+      });
     process.stdin.pipe(fsOut);
-
-    });
 
     //process.stdin.resume();
     //process.stdin.on('data',function(){

@@ -240,13 +240,14 @@
     });
     return b;
   }
-  var toPromise = function(fn){
+  var toPromise = function(){
     var returnPromise = p();
     this.calls(function(v){
-      var actualPromise = fn(v);
-      actualPromise.then(function(a){
-        returnPromise.resolve(a);
-      });
+      returnPromise.resolve(v);
+      //var actualPromise = fn(v);
+      //actualPromise.then(function(a){
+      //  returnPromise.resolve(a);
+      //});
     });
     return returnPromise;
   }
