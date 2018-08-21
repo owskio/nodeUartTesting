@@ -1,10 +1,10 @@
 
 
 cat \
-  promiseCache.js \
+  promiseCache.javascript \
   *.js \
-  > out.js
-sudo node out.js
+  > out.txt
+sudo node out.txt
 
 
 

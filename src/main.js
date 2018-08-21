@@ -1,11 +1,11 @@
 
 
 
-         pc('parsers')         .then(function(p){
-  return pc('blips')           .then(function(b){
-    l('resolved parsers');
-    l('resolved blips');
-  }); });
+//         pc('parsers')         .then(function(p){
+//  return pc('blips')           .then(function(b){
+//    l('resolved parsers');
+//    l('resolved blips');
+//  }); });
 
 
 ;(function(){
@@ -33,104 +33,92 @@
 })();
 
 
-//;(function(){
-//  //var SerialPort = require('serialport');
-//         pc.fromNodeModule('serialport').then(function(SerialPort){
-//  return pc('blips')                    .then(function(b){
-//    var d = root.deNodeify;
-//    //Detecting open errors can be moved to the constructor's callback.
-//    var port = '/dev/ttyUSB0';
-//    var baud = 9600;
-//    var port = new SerialPort(port,{baudRate:baud,autoOpen:false});
-////    var eventToBlip = function(port,eventName){
-////      var result = new b();
-////      port.on(eventName, function(val) {
-////        l('on '+eventName+': ', arguments );
-////        result.set(val);
-////      });
-////      return result;
-////    };
-//    var o = port.open(d(function () {
-//      l('Port created: ', arguments);
-////      var err = eventToBlip(port,'error');
-////      err.calls(function(val){ l('errBlip: ',arguments); });
-////      var op = eventToBlip(port,'open');
-////      op.calls(function(val){ l('openBlip: ',arguments); });
-//      var parser = new SerialPort.parsers.Readline();
-//      port.pipe(parser);
-////      var dat = eventToBlip(parser,'data');
-////      dat.calls(function(val){ l('dataBlip: ',arguments); });
-//      parser.on('data', function (data) {
-//        l('Data:', arguments);
-//        if(data.includes('!')){
-//          port.close(d(function() {
-//            l('port closed: ',arguments);
-//          }));
-//        }
-//      });
-//      port.write('hi ', d(function() {
-//        l('message written',arguments);
-//      }));
-//    port.on('error', function() { l('on Error: ', arguments ); })
-//    port.on('open', function() { l('Open:', arguments); });
-//    }));
-//  }); });
-//})();
+;(function(){
 
+  pc('blips') .then(function(b){
+
+    b.fileData = function(fsIn){
+      var fd = new b();
+      fsIn.on('data',function(err,data){
+        fd.set(err || data);
+      });
+      return fd;
+    };
+    b.fileWrite = function(fsOut){
+      var fd = new b();
+      fd.calls(function(d){
+        fsOut.write(d);
+      });
+      return fd;
+    };
+
+    pc('blip-fs',p(b));
+
+  }); 
+})();
 
 ;(function(){
+
   //Client module
   var pcfs = pc.fromNodeModule('fs');
-         pcfs        .then(function(fs){
-  return pc('blips') .then(function(b){
+  var pcConsts = pc.fromNodeModule('constants');
+
+         pcfs          .then(function(fs){
+  return pcConsts      .then(function(c){
+  return pc('blips')   .then(function(b){
+  return pc('blip-fs') .then(function(b){
+
     var ttyUsb = '/dev/ttyUSB0';
     var fsIn = fs.createReadStream(ttyUsb);
+    //No combination of these seemed to help to eliminate the timeout below
+    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_RDRW});
+    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY});
+    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY|c.O_RDWR});
+    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY|c.O_RDWR|c.O_NONBLOCK});
+    //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY|c.O_RDONLY});
     fsIn.on('open',function(){
       l('input ready: ',arguments);
-      b.fileData = function(fsIn){
-        var fd = new b();
-        fsIn
-          .on('data',function(err,data){
-            fd.set(err || data);
-          });
-        return fd;
-      };
       var tty = b.fileData(fsIn);
-      var str = tty
-        .map(function(dat){
-          var str = dat.toString();
-          return str;
-        });
-      str
-        .calls(function(dat){
-          l('str: ',dat);
-          var pass = dat.includes('Hello World!');
-          l('pass: ',pass);
-        });
-    });
+      var str = tty.map(function(dat){
+        var str = dat.toString();
+        return str;
+      });
+      str.calls(function(dat){
+        l('str: ',dat);
+        var pass = dat.includes('Hello World!');
+        l('pass: ',pass);
+      });
 
-    var fsOut = fs.createWriteStream(ttyUsb);
+    //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_NOCTTY});
+    //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY});
+    var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY|c.O_NOCTTY});
+    fsOut.on('drain',function(){ l('drain: ',arguments); });
+    fsOut.on('error',function(){ l('error: ',arguments); });
+    fsOut.on('*',function(){ l('close: ',arguments); });
+    fsOut.on('finish',function(){ l('finish: ',arguments); });
+    fsOut.on('readable',function(){ l('readable: ',arguments); });
+    fsOut.on('data',function(){ l('data: ',arguments); });
+    fsOut.on('pipe',function(){ fsOut.write('hi \n'); });
+
     fsOut.on('open',function(){
       l('output ready: ',arguments);
-      b.fileWrite = function(fsOut){
-        var fd = new b();
-        fd.calls(function(d){
-          fsOut.write(d);
-        });
-        return fd;
-      };
       var out = b.fileWrite(fsOut);
-      out.set('hi ');
+      root.setTimeout(function(){
+        out.set('hi ');
+      },500);
+      root.setTimeout(function(){
+        out.set('hi ');
+      },1000);
+      fsOut.write('hi \n');
+    });
+    process.stdin.pipe(fsOut);
+
     });
 
-    //process.stdin.addEventListener('data',function(){
-    //var stdin = process.openStdin();
-    //stdin.addListener('data',function(){
-    process.stdin.on('data',function(){
-      l('stdin data: ',arguments);
-    });
-    //l('stdin pipe: ', process.stdin.pipe);
-    process.stdin.pipe(fsOut);
+    //process.stdin.resume();
+    //process.stdin.on('data',function(){
+    //  l('stdin data: ',arguments);
+    //});
     //process.stdin.resume();
     //out.set('s');
     //out.set('p');
@@ -146,7 +134,10 @@
     //out.set('s');
     //out.set('p');
     //out.set(' ');
-  }); });
+  });
+  });
+  });
+  });
 })();
 
 
