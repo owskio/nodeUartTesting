@@ -24,3 +24,40 @@
   }));
 
 })();
+
+;(function(){
+  root.p.setTimeout = function(ms){
+    var result = new p();
+    root.setTimeout(function(){
+      result.resolve();
+    },ms);
+    return result;
+  }
+  pc('promise-util',p('get it from global/window/root'));
+})();
+
+;(function(){
+  //blip extensions
+  pc('blips').then(function(b){
+    b.setTimeout = function(ms){
+      root.setTimeout(function(){
+        output.set('hi ');
+      },ms);
+    }
+    b.nodeEvent = function(obj,eventName){
+      var fd = new b();
+      obj.on(eventName,function(err,data){
+        fd.set(err || data);
+      });
+      return fd;
+    };
+    b.prototype.writesTo = function(nodeStream){
+      this.calls(function(d){
+        nodeStream.write(d);
+      });
+      return this;
+    };
+    pc('blip-util',p(b));
+  });
+})();
+

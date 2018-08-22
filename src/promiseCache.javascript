@@ -185,6 +185,22 @@ var root;
   };
 
   //export
+  root.promiseCache = pc;
   root.pc = pc;
 
+})();
+
+;(function(){
+  //Promise extensions for node :-(
+  p.fromNodeModule = function(moduleName){
+    //From imperative to functional; just beautiful!
+    var nodeModule = require(moduleName);
+    return p(nodeModule);
+  };
+  pc.fromNodeModule = function(moduleName){
+    //From imperative to functional; just beautiful!
+    var nodeModulePromise = p.fromNodeModule(moduleName);
+    pc(moduleName,nodeModulePromise);
+    return pc(moduleName);
+  };
 })();
