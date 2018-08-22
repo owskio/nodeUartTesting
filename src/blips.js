@@ -104,9 +104,11 @@
   };
   var interval = function(ms){
     ms = ms || 100;
+    var count = 0;
     var b = Blip();
     window.setInterval(function(){
-      b.set();
+      count++;
+      b.set(count);
     },ms);
     return b;
   };
@@ -229,7 +231,8 @@
       return other.value === otherValue;
     });
   }
-  var once = function(fn){
+  var once = function(){
+    //Only emits once, like promise, but without the Promise/Future object
     var called = false;
     var b = Blip();
     this.calls(function(v){

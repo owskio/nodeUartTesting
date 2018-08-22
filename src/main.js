@@ -46,13 +46,6 @@
 ;(function(){
   //blip extensions
   pc('blips') .then(function(b){
-//    b.fileData = function(fsIn){
-//      var fd = new b();
-//      fsIn.on('data',function(err,data){
-//        fd.set(err || data);
-//      });
-//      return fd;
-//    };
     b.setTimeout = function(ms){
       root.setTimeout(function(){
         output.set('hi ');
@@ -70,6 +63,13 @@
         nodeStream.write(d);
       });
       return this;
+    };
+    b.prototype.mapFn = function(fnName){
+      var mapped = this.map(function(val){
+        var m = val[fnName]();
+        return m;
+      });
+      return mapped;
     };
     pc('blip-fs',p(b));
   });
@@ -90,23 +90,25 @@
     var fsIn = fs.createReadStream(ttyUsb);
     //No combination of these seemed to help to eliminate the timeout below
     //var fsIn = fs.createReadStream(ttyUsb,{flags:c.O_NOCTTY|c.O_RDWR|c.O_NONBLOCK});
-    //fsIn.on('open',function(){
-    var openInput = b.nodeEvent(fsIn,'open');
+    var openInput = b.nodeEvent(fsIn,'open').toPromise();
     var input = new b();
-    openInput.calls(function(){
-      l('openInput: ',arguments);
-      var ttyIn = b.nodeEvent(fsIn,'data');//fileData(fsIn);
+    openInput.then(function(){
+      l('read stream open: ',arguments);
+      var ttyIn = b.nodeEvent(fsIn,'data');
       ttyIn.sets(input);
     });
     var str = input.map(function(dat){
       var str = dat.toString();
       return str;
     });
-    str.calls(function(dat){
-      l('str: ',dat);
-      var pass = dat.includes('Hello World!');
-      l('pass: ',pass);
-    });
+
+//    str
+//      .calls(function(dat){
+//        l('str: ',dat);
+//        var pass = dat.includes('Hello World!');
+//        l('pass: ',pass);
+//      });
+
 
     //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY|c.O_NOCTTY});
     var fsOut = fs.createWriteStream(ttyUsb);
@@ -117,13 +119,35 @@
     p.all([openOutput,wtfTimeout])
       .then(function(){
         l('openOutput: ',arguments);
-        root.setTimeout(function(){
-          output.set('hi ');
-        },500);
-        output.set('hi ');
-        output.set('hi ');
+                send('hi ').then(function(a){
+                l('response a: ',a);
+        return  send('hi ').then(function(b){
+          l('response b: ',b);
+        return  send('hi ').then(function(c){
+          l('response c: ',c);
+        }); }); });
+//        root.setTimeout(function(){
+//          output.set('hi ');
+//        },500);
+//        output.set('hi ');
+//        output.set('hi ');
       });
     process.stdin.pipe(fsOut);
+
+    var send = function(requestStr){
+//      var response = new p();
+//      str
+//        .once()
+//        .calls(function(responseString){
+//          response.resolve(responseString);
+//        })
+//        ;
+      l('send: ',requestStr);
+      var response = str.toPromise();
+      output.set(requestStr);
+      return response;
+    };
+
 
     //process.stdin.resume();
     //process.stdin.on('data',function(){
