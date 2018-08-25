@@ -1,0 +1,21 @@
+read stream open:  { '0': 11 }
+openOutput fd:  12
+send:  hi 
+response a:  hi 
+hi
+
+Hello World!
+
+send:  hi 
+response b:  hi 
+hi
+
+Hello World!
+
+send:  hi 
+response c:  hi 
+hi
+
+Hello World!
+
+PASS

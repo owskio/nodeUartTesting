@@ -1,11 +1,67 @@
 
+;(function(){
 
+  //Integration Tests
+  
+  var pc = root.promiseCache;
+  
+  return pc('testSetup').then(function(t){
+
+    var send = t.send;
+
+    var comparable = function(str){
+      str = str.replace(/ /g,'_');
+      str = str.replace(/\r\n/g,'|r|n');
+      str = str.replace(/\t/g,'|t');
+      str = '['+str+']';
+      return str;
+    };
+    var equals = function(a,b){
+      var pass = a === b;
+      var output = pass ? 'PASS':'FAIL';
+      l(output);
+      return pass;
+    }
+    var test = function(sendStr,expected){
+      return send(sendStr).then(function(c){ 
+        var testResponse = comparable(c)
+        l('received: ', testResponse);
+        var testResult = expected 
+          ? testResponse === expected
+          : testResponse
+          ;
+        return testResult;
+      });
+    };
+
+    //Test that we are serializing commands
+    //and able to communicate with the chip
+    var seqTest = send('hi ').then(function(a){ l('response a: ',a);
+    return        send('hi ').then(function(b){ l('response b: ',b);
+    return        send('hi ').then(function(c){ l('response c: ',c);
+      var response = comparable(a);
+      return equals(response,'[hi_|r|nhi|r|n|r|nHello_World!|r|n]');
+    }); }); });
+
+    var peekTest = seqTest      .then(function(_){
+    return         test('peek ').then(function(c){ 
+    return         test('one ' ).then(function(r){ 
+    return         test('peek ').then(function(c){ 
+    return         test('one ' ).then(function(r){ 
+    return         test('peek ','[peek_|r|npeek|r|n0101]').then(function(c){ 
+      l('test passed?: ',c);
+    }); }); }); }); }); });
+
+  });
+
+})();
 
 ;(function(){
-  
-  var pc = promiseCache;
 
-  //Client module
+  //Integration Test Suite setup
+
+  var pc = root.promiseCache;
+
   var pcfs     = pc.fromNodeModule('fs');
   var pcConsts = pc.fromNodeModule('constants');
 
@@ -22,14 +78,6 @@
     var fsIn = fs.createReadStream(ttyUsb);
     var openInput = b.nodeEvent(fsIn,'open').toPromise();
     var input = new b();
-    
-    //This didn't help to elminate wtfTimeout
-    //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY|c.O_NOCTTY});
-    var fsOut = fs.createWriteStream(ttyUsb);
-    var output = new b();
-    output.writesTo(fsOut);
-    var openOutput = b.nodeEvent(fsOut,'open').toPromise();
-    var wtfTimeout = p.setTimeout(500);
 
     var connectedInput = openInput.then(function(){
       l('read stream open: ',arguments);
@@ -43,6 +91,15 @@
       return str;
     });
 
+    //This didn't help to elminate wtfTimeout
+    //var fsOut = fs.createWriteStream(ttyUsb,{flags:c.O_WRONLY|c.O_NOCTTY});
+    var fsOut = fs.createWriteStream(ttyUsb);
+    var output = new b();
+    output.writesTo(fsOut);
+    var openOutput = b.nodeEvent(fsOut,'open').toPromise();
+    var wtfTimeout = p.setTimeout(1000);
+
+
     var send = function(requestStr){
       //Use the event loop as the IO queue, create "natural" back pressure
       l('send: ',requestStr);
@@ -51,19 +108,20 @@
       return response;
     };
 
-    p.all([connectedInput,openOutput,wtfTimeout]).then(function(args){
-      //Use this as a basis for UART testing
-      l('openOutput fd: ',args[1]);
-              send('hi ').then(function(a){
-              l('response a: ',a);
-      return  send('hi ').then(function(b){
-              l('response b: ',b);
-      return  send('hi ').then(function(c){
-              l('response c: ',c);
-      }); }); });
-    });
-
+    //Pipe console input to chip
     process.stdin.pipe(fsOut);
+
+    var ready = p.all([connectedInput,openOutput,wtfTimeout])
+      .then(function(args){
+        l('openOutput fd: ',args[1]);
+        return p({
+          connectedInput : connectedInput
+        , openOutput : openOutput
+        , send : send
+        });
+      });
+
+    pc('testSetup',ready);
 
   }); }); }); }); });
 
