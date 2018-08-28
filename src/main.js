@@ -16,39 +16,43 @@
       str = '['+str+']';
       return str;
     };
-    var equals = function(a,b){
-      var pass = a === b;
-      var output = pass ? 'PASS':'FAIL';
-      l(output);
-      return pass;
+    var assertEquals = function(a,b){
+      var areEqual = a === b;
+      if(!areEqual){
+        l('expected: ', b);
+        l('received: ', a);
+      }
+      return areEqual;
     }
-    var test = function(sendStr,expected){
+    var test = function(sendStr){
       return send(sendStr).then(function(c){ 
         var testResponse = comparable(c)
-        l('received: ', testResponse);
-        var testResult = expected 
-          ? testResponse === expected
-          : testResponse
-          ;
-        return testResult;
+        return testResponse;
+      });
+    };
+    var expect = function(sendStr,expected){
+      return test(sendStr).then(function(c){ 
+        var result = assertEquals(c,expected);
+        return result;
       });
     };
 
     //Test that we are serializing commands
     //and able to communicate with the chip
-    var seqTest = send('hi ').then(function(a){ l('response a: ',a);
-    return        send('hi ').then(function(b){ l('response b: ',b);
-    return        send('hi ').then(function(c){ l('response c: ',c);
-      var response = comparable(a);
-      return equals(response,'[hi_|r|nhi|r|n|r|nHello_World!|r|n]');
-    }); }); });
+    var helloWorld = test('hi ').then(function(a){
+      return assertEquals(a,'[hi_|r|nhi|r|n|r|nHello_World!|r|n]');
+    });
 
-    var peekTest = seqTest      .then(function(_){
+    var dsp = helloWorld .then(function(_){
+      return expect('dsp ','[dsp_|r|ndsp|r|n0100]');
+    });
+
+    var peekTest = helloWorld      .then(function(_){
+    return         test('one ').then(function(c){ 
+    return         test('dsp ' ).then(function(r){ 
     return         test('peek ').then(function(c){ 
     return         test('one ' ).then(function(r){ 
-    return         test('peek ').then(function(c){ 
-    return         test('one ' ).then(function(r){ 
-    return         test('peek ','[peek_|r|npeek|r|n0101]').then(function(c){ 
+    return         expect('peek ','[peek_|r|npeek|r|n0101]').then(function(c){ 
       l('test passed?: ',c);
     }); }); }); }); }); });
 
@@ -79,8 +83,8 @@
     var openInput = b.nodeEvent(fsIn,'open').toPromise();
     var input = new b();
 
-    var connectedInput = openInput.then(function(){
-      l('read stream open: ',arguments);
+    var connectedInput = openInput.then(function(fd){
+      l('read stream fd: ',fd);
       var ttyIn = b.nodeEvent(fsIn,'data');
       ttyIn.sets(input);
       return p(input);
@@ -102,7 +106,6 @@
 
     var send = function(requestStr){
       //Use the event loop as the IO queue, create "natural" back pressure
-      l('send: ',requestStr);
       var response = strInput.toPromise();
       output.set(requestStr);
       return response;
@@ -111,9 +114,10 @@
     //Pipe console input to chip
     process.stdin.pipe(fsOut);
 
-    var ready = p.all([connectedInput,openOutput,wtfTimeout])
+    var ready = p
+      .all([connectedInput,openOutput,wtfTimeout])
       .then(function(args){
-        l('openOutput fd: ',args[1]);
+        l('output stream fd: ',args[1]);
         return p({
           connectedInput : connectedInput
         , openOutput : openOutput
