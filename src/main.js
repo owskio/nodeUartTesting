@@ -47,11 +47,11 @@
       return expect('dsp ','[dsp_|r|ndsp|r|n0100]');
     });
 
-    var peekTest = helloWorld      .then(function(_){
-    return         test('one ').then(function(c){ 
+    var peekTest = dsp          .then(function(_){
+    return         test('one ') .then(function(c){ 
     return         test('dsp ' ).then(function(r){ 
-    return         test('peek ').then(function(c){ 
     return         test('one ' ).then(function(r){ 
+    return         test('peek ').then(function(c){ 
     return         expect('peek ','[peek_|r|npeek|r|n0101]').then(function(c){ 
       l('test passed?: ',c);
     }); }); }); }); }); });
@@ -120,8 +120,8 @@
         l('output stream fd: ',args[1]);
         return p({
           connectedInput : connectedInput
-        , openOutput : openOutput
-        , send : send
+        , openOutput     : openOutput
+        , send           : send
         });
       });
 
