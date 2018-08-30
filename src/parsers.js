@@ -1,6 +1,8 @@
 
 ;(function(){
 
+  var pc = promiseCache;
+
   var Parser = function(parsingFn){
     //Constructor: allow the optional use of the 'new' keyword
     if(!(this instanceof Parser)) return new Parser(parsingFn);
@@ -16,7 +18,7 @@
     //since we are making parsers.
     //This will make the API a bit more fluent 
     //since people will be able to write code like this:
-    //  dateParser.as((date)=>{});
+    //  date.as((d)=>{});
     //
     var updateWith = function(parser){
       //If I recall correctly I couldn't do trampolining for some reason,
@@ -30,7 +32,7 @@
       return this; 
     }
     var dispatchUsing = function(parser){
-      //In this fn this and parser are swapped with respect to their usual meanings
+      //In this fn this and parser are swapped with respect to what you might expect
       this.updateWith(parser);
       var returnValue = this.parse();
       parser.updateWith(this);
@@ -72,6 +74,7 @@
       });
     }
   })();
+
   Parser.result = function(val){
     //This is the 'return' implementation, 
     //the other half of the bind+return monad interface
@@ -85,94 +88,107 @@
     var parsed    = this.parse();
     return parsed;
   }
+
+  pc('Parser',p(Parser));
+
+})();
   
 ////////////////////////////////////////////////////////////////////////////////
+;(function(){
 
-  Parser.stringp = function(search){
-    //Search for a specific string 'search'
-    return Parser(function(){
-      var input    = this.input;
-      var begin    = this.position;
-      var end      = begin + search.length;
-      var possible = input.substring(begin,end);
-      var match = search === possible;
-      if(match){
-        //Advance the cursor and return the matched value
-        this.position += search.length;
-        return search;
-      } else {
-        this.parseFailed = true;
-      }
-    });
-  };
+  var pc = promiseCache;
 
-  //Parser.prototype.sp = function(){
-  //  //'sp' means 'space character'
-  //  return this.left(Parser.stringp(' '));
-  //};
-  Parser.prototype.or = function(parser){
-    var previous = this;
-    return Parser(function(){
-      var fallbackPosition = this.position;
-      var firstTry = previous.dispatchUsing(this);
-      if(this.parseFailed) {
-        this.position = fallbackPosition;
-        this.parseFailed = false;
-        var secondTry = parser.dispatchUsing(this);
-        return secondTry;
-      } else {
-        return firstTry;
-      }
-    });
-  };
-  Parser.many = function(parser){
-    return Parser(function(){
-      var result = [];
-      var fallbackPosition = this.position;
-      while(!this.parseFailed){
-        var val = parser.dispatchUsing(this);
-        if(this.parseFailed){
-          this.position = fallbackPosition;
+  pc('Parser').then(function(Parser){
+
+    Parser.stringp = function(search){
+      //Search for a specific string 'search'
+      return Parser(function(){
+        var input    = this.input;
+        var begin    = this.position;
+        var end      = begin + search.length;
+        var possible = input.substring(begin,end);
+        var match = search === possible;
+        if(match){
+          //Advance the cursor and return the matched value
+          this.position += search.length;
+          return search;
         } else {
-          result.push(val);
-          fallbackPosition = this.position;
+          this.parseFailed = true;
         }
-      }
-      this.parseFailed = false;
-      return result;
-    });  
-  };
-  Parser.optional = function(str){
-    var s   = Parser.stringp;
-    return s(str).or(s(''));
-  };
-  Parser.prototype.left = function(nextParser){
-    //'left' means 'ignore-right', and 'right' means 'ignore-left' 
-    //so  in parseA.left(parseB), we only get 'A'
-    //and in parseA.right(parseB), we only get 'B'
-    return this      .as(function(l){
-    return nextParser.as(function(r){
-    return Parser.result(l);
-    });}); 
-  };
-  Parser.prototype.right = function(nextParser){
-    //'left' means 'ignore-right', and 'right' means 'ignore-left' 
-    //so  in parseA.left(parseB), we only get 'A'
-    //and in parseA.right(parseB), we only get 'B'
-    return this      .as(function(l){
-    return nextParser.as(function(r){
-    return Parser.result(r);
-    });}); 
-  };
-  Parser.prototype.y = function(nextParser){
-    //'y' is spanish for 'and'
-    return this      .as(function(t){
-    return nextParser.as(function(n){
-    return Parser.result(t + n);
-    });}); 
-  };
+      });
+    };
 
-  pc('parsers',p(Parser));
+    //Parser.prototype.sp = function(){
+    //  //'sp' means 'space character'
+    //  return this.left(Parser.stringp(' '));
+    //};
+
+    Parser.prototype.or = function(parser){
+      var previous = this;
+      return Parser(function(){
+        var fallbackPosition = this.position;
+        var firstTry = previous.dispatchUsing(this);
+        if(this.parseFailed) {
+          this.position = fallbackPosition;
+          this.parseFailed = false;
+          var secondTry = parser.dispatchUsing(this);
+          return secondTry;
+        } else {
+          return firstTry;
+        }
+      });
+    };
+    Parser.many = function(parser){
+      return Parser(function(){
+        var result = [];
+        var fallbackPosition = this.position;
+        while(!this.parseFailed){
+          var val = parser.dispatchUsing(this);
+          if(this.parseFailed){
+            this.position = fallbackPosition;
+          } else {
+            result.push(val);
+            fallbackPosition = this.position;
+          }
+        }
+        this.parseFailed = false;
+        return result;
+      });  
+    };
+    Parser.optional = function(str){
+      var s   = Parser.stringp;
+      return s(str).or(s(''));
+    };
+    Parser.prototype.left = function(nextParser){
+      //'left' means 'ignore-right', and 'right' means 'ignore-left' 
+      //so  in parseA.left(parseB), we only get 'A'
+      //and in parseA.right(parseB), we only get 'B'
+      return this      .as(function(l){
+      return nextParser.as(function(r){
+      return Parser.result(l);
+      });}); 
+    };
+    Parser.prototype.right = function(nextParser){
+      //'left' means 'ignore-right', and 'right' means 'ignore-left' 
+      //so  in parseA.left(parseB), we only get 'A'
+      //and in parseA.right(parseB), we only get 'B'
+      return this      .as(function(l){
+      return nextParser.as(function(r){
+      return Parser.result(r);
+      });}); 
+    };
+    Parser.prototype.y = function(nextParser){
+      //'y' is spanish for 'and'
+      return this      .as(function(t){
+      return nextParser.as(function(n){
+      return Parser.result(t + n);
+      });}); 
+    };
+
+    //Export
+    pc('parsers',p(Parser));
+
+  });
 
 })();
 
