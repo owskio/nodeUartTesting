@@ -27,6 +27,8 @@
     var test = function(sendStr){
       return send(sendStr).then(function(c){ 
         var testResponse = comparable(c)
+        l('sent: ', sendStr);
+        l('recd: ', c);
         return testResponse;
       });
     };
@@ -44,17 +46,23 @@
     });
 
     var dsp = helloWorld .then(function(_){
-      return expect('dsp ','[dsp_|r|ndsp|r|n0100]');
+      return expect('dsp ','[dsp_|r|ndsp|r|n0101]');
     });
 
     var peekTest = dsp          .then(function(_){
+    return         test('peek ').then(function(c){ 
     return         test('one ') .then(function(c){ 
     return         test('dsp ' ).then(function(r){ 
-    return         test('one ' ).then(function(r){ 
+    return         test('peek ').then(function(c){ 
+    return         test('left ' ).then(function(r){ 
+    return         test('dsp ' ).then(function(r){ 
+    return         test('peek ').then(function(c){ 
+    return         test('left ' ).then(function(r){ 
+    return         test('dsp ' ).then(function(r){ 
     return         test('peek ').then(function(c){ 
     return         expect('peek ','[peek_|r|npeek|r|n0101]').then(function(c){ 
       l('test passed?: ',c);
-    }); }); }); }); }); });
+    }); }); }); }); }); }); }); }); }); }); }); });
 
   });
 
