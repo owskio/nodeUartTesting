@@ -51,18 +51,19 @@
 
     var peekTest = dsp          .then(function(_){
     return         test('peek ').then(function(c){ 
-    return         test('one ') .then(function(c){ 
+    return         test('one ' ).then(function(c){ 
     return         test('dsp ' ).then(function(r){ 
     return         test('peek ').then(function(c){ 
-    return         test('left ' ).then(function(r){ 
+    return         test('left ').then(function(r){ 
     return         test('dsp ' ).then(function(r){ 
     return         test('peek ').then(function(c){ 
-    return         test('left ' ).then(function(r){ 
+    return         test('left ').then(function(r){ 
     return         test('dsp ' ).then(function(r){ 
     return         test('peek ').then(function(c){ 
+    return         test('dne ').then(function(c){ 
     return         expect('peek ','[peek_|r|npeek|r|n0101]').then(function(c){ 
       l('test passed?: ',c);
-    }); }); }); }); }); }); }); }); }); }); }); });
+    }); }); }); }); }); }); }); }); }); }); }); }); });
 
   });
 
