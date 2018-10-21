@@ -1,10 +1,5 @@
+#!/bin/bash
 
-
-cat \
-  promiseCache.javascript \
-  *.js \
-  > out.txt
-sudo node out.txt
-
-
-
+cat promiseCache.js > out.js
+cat $(ls *.js | grep -v 'promiseCache.js') >> out.js
+sudo node out.js
